@@ -19,11 +19,11 @@ export default function DashboardLayout({
                     <h1>Agência 360</h1>
                 </div>
                 <nav className="sidebar-nav">
-                    <Link href="/dashboard" className="nav-item active">
+                    <Link href="/dashboard/clients" className="nav-item active">
                         <Users size={18} />
                         Clientes
                     </Link>
-                    <Link href="/dashboard" className="nav-item">
+                    <Link href="/dashboard/carousels" className="nav-item">
                         <LayoutGrid size={18} />
                         Todos os Carrosséis
                     </Link>

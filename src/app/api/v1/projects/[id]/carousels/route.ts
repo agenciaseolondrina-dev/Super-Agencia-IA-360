@@ -3,19 +3,19 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { success, created, badRequest, serverError } from '@/lib/api-helpers';
 
 interface Params {
-    params: Promise<{ projectId: string }>;
+    params: Promise<{ id: string }>;
 }
 
-// GET /api/v1/projects/:projectId/carousels
+// GET /api/v1/projects/:id/carousels
 export async function GET(_request: NextRequest, { params }: Params) {
     try {
-        const { projectId } = await params;
+        const { id } = await params;
         const supabase = createServiceClient();
 
         const { data, error } = await supabase
             .from('carousels')
             .select('*, slides(id, position, headline, preview_url)')
-            .eq('project_id', projectId)
+            .eq('project_id', id)
             .order('created_at', { ascending: false });
 
         if (error) return serverError(error.message);
@@ -25,10 +25,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
     }
 }
 
-// POST /api/v1/projects/:projectId/carousels
+// POST /api/v1/projects/:id/carousels
 export async function POST(request: NextRequest, { params }: Params) {
     try {
-        const { projectId } = await params;
+        const { id } = await params;
         const supabase = createServiceClient();
         const body = await request.json();
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         const { data: carousel, error: carouselError } = await supabase
             .from('carousels')
             .insert({
-                project_id: projectId,
+                project_id: id,
                 title: body.title,
                 style_preset: body.style_preset || 'modern_clean',
             })

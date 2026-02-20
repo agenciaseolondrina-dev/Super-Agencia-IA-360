@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Save, CheckCircle, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Sparkles, Plus, Trash2, Wand2, Loader2 } from 'lucide-react';
 
 interface Slide {
     id: string;
@@ -30,6 +30,7 @@ export default function CarouselEditPage({ params }: { params: Promise<{ id: str
     const [activeSlide, setActiveSlide] = useState(0);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [generatingCopy, setGeneratingCopy] = useState(false);
 
     useEffect(() => {
         fetchCarousel();
@@ -86,6 +87,30 @@ export default function CarouselEditPage({ params }: { params: Promise<{ id: str
         }
     }
 
+    async function generateCopyWithAI() {
+        setGeneratingCopy(true);
+        try {
+            const res = await fetch(`/api/v1/carousels/${id}/generate-copy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+            if (res.ok) {
+                await fetchCarousel();
+                setActiveSlide(0);
+            } else {
+                const err = await res.json();
+                console.error('Error generating copy:', err);
+                alert(err.error || 'Erro ao gerar copy com IA');
+            }
+        } catch (e) {
+            console.error('Error generating copy:', e);
+            alert('Erro de conexão ao gerar copy');
+        } finally {
+            setGeneratingCopy(false);
+        }
+    }
+
     function updateSlideField(index: number, field: string, value: unknown) {
         if (!carousel) return;
         const updated = { ...carousel };
@@ -118,23 +143,51 @@ export default function CarouselEditPage({ params }: { params: Promise<{ id: str
     if (!carousel) return <div className="empty-state"><p>Carrossel não encontrado</p></div>;
 
     const currentSlide = carousel.slides[activeSlide];
-    const isDraft = carousel.status === 'draft';
+    const isDraft = carousel.status === 'draft' || carousel.status === 'draft_with_copy';
 
     const statusLabels: Record<string, string> = {
-        draft: 'Rascunho', approved: 'Aprovado', generating: 'Gerando...', generated: 'Gerado', hires_ready: 'Hi-Res Pronto',
+        draft: 'Rascunho', draft_with_copy: 'Copy Gerada ✨', approved: 'Aprovado', generating: 'Gerando...', generated: 'Gerado', hires_ready: 'Hi-Res Pronto',
     };
 
     return (
         <div>
+            {/* AI Generation Loading Overlay */}
+            {generatingCopy && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000, flexDirection: 'column', gap: 20,
+                    backdropFilter: 'blur(4px)',
+                }}>
+                    <div style={{
+                        width: 80, height: 80, borderRadius: 16,
+                        background: 'linear-gradient(135deg, #6c5ce7, #a78bfa)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                    }}>
+                        <Wand2 size={36} color="white" />
+                    </div>
+                    <div style={{ color: 'white', fontSize: 18, fontWeight: 600 }}>
+                        ✨ Gerando copy com IA...
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+                        Preenchendo {carousel.slides.length} slides automaticamente
+                    </div>
+                    <Loader2 size={24} color="white" style={{ animation: 'spin 1s linear infinite' }} />
+                </div>
+            )}
+
             <div className="page-header">
                 <div>
                     <div className="breadcrumb">
-                        <Link href="/dashboard">Clientes</Link>
+                        <Link href="/dashboard/clients">Clientes</Link>
                         <span>/</span>
-                        <span>Carrossel</span>
+                        <Link href="/dashboard/carousels">Carrosséis</Link>
+                        <span>/</span>
+                        <span>Editor</span>
                     </div>
                     <h1 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <Link href="/dashboard" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                        <Link href="/dashboard/carousels" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
                             <ArrowLeft size={24} />
                         </Link>
                         {carousel.title}
@@ -144,6 +197,17 @@ export default function CarouselEditPage({ params }: { params: Promise<{ id: str
                 <div style={{ display: 'flex', gap: 10 }}>
                     {isDraft && (
                         <>
+                            <button
+                                className="btn"
+                                onClick={generateCopyWithAI}
+                                disabled={generatingCopy}
+                                style={{
+                                    background: 'linear-gradient(135deg, #6c5ce7, #a78bfa)',
+                                    color: 'white', border: 'none',
+                                }}
+                            >
+                                <Wand2 size={16} /> {generatingCopy ? 'Gerando...' : '✨ Gerar com IA'}
+                            </button>
                             <button className="btn btn-secondary" onClick={() => currentSlide && saveSlide(currentSlide)} disabled={saving}>
                                 <Save size={16} /> {saving ? 'Salvando...' : 'Salvar'}
                             </button>
@@ -152,9 +216,9 @@ export default function CarouselEditPage({ params }: { params: Promise<{ id: str
                             </button>
                         </>
                     )}
-                    {(carousel.status === 'approved' || carousel.status === 'generated') && (
+                    {(carousel.status === 'approved' || carousel.status === 'generated' || carousel.status === 'draft_with_copy') && (
                         <button className="btn btn-primary" onClick={generatePreviews}>
-                            <Sparkles size={16} /> Gerar Previews
+                            <Sparkles size={16} /> Gerar Criativos
                         </button>
                     )}
                     {carousel.status === 'generated' && (
@@ -164,6 +228,12 @@ export default function CarouselEditPage({ params }: { params: Promise<{ id: str
                     )}
                 </div>
             </div>
+
+            <style jsx>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
 
             <div style={{ display: 'flex', gap: 24 }}>
                 {/* Slide nav */}

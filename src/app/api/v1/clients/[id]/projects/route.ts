@@ -3,19 +3,19 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { success, created, badRequest, serverError } from '@/lib/api-helpers';
 
 interface Params {
-    params: Promise<{ clientId: string }>;
+    params: Promise<{ id: string }>;
 }
 
-// GET /api/v1/clients/:clientId/projects
+// GET /api/v1/clients/:id/projects
 export async function GET(_request: NextRequest, { params }: Params) {
     try {
-        const { clientId } = await params;
+        const { id } = await params;
         const supabase = createServiceClient();
 
         const { data, error } = await supabase
             .from('projects')
             .select('*')
-            .eq('client_id', clientId)
+            .eq('client_id', id)
             .order('created_at', { ascending: false });
 
         if (error) return serverError(error.message);
@@ -25,10 +25,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
     }
 }
 
-// POST /api/v1/clients/:clientId/projects
+// POST /api/v1/clients/:id/projects
 export async function POST(request: NextRequest, { params }: Params) {
     try {
-        const { clientId } = await params;
+        const { id } = await params;
         const supabase = createServiceClient();
         const body = await request.json();
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         const { data, error } = await supabase
             .from('projects')
             .insert({
-                client_id: clientId,
+                client_id: id,
                 name: body.name,
                 description: body.description || null,
             })

@@ -3,18 +3,18 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { success, created, badRequest, serverError } from '@/lib/api-helpers';
 
 interface Params {
-    params: Promise<{ clientId: string }>;
+    params: Promise<{ id: string }>;
 }
 
-// GET /api/v1/clients/:clientId/assets
+// GET /api/v1/clients/:id/assets
 export async function GET(request: NextRequest, { params }: Params) {
     try {
-        const { clientId } = await params;
+        const { id } = await params;
         const supabase = createServiceClient();
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type');
 
-        let query = supabase.from('assets').select('*').eq('client_id', clientId);
+        let query = supabase.from('assets').select('*').eq('client_id', id);
         if (type) query = query.eq('type', type);
 
         const { data, error } = await query.order('created_at', { ascending: false });
@@ -26,10 +26,10 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
 }
 
-// POST /api/v1/clients/:clientId/assets
+// POST /api/v1/clients/:id/assets
 export async function POST(request: NextRequest, { params }: Params) {
     try {
-        const { clientId } = await params;
+        const { id } = await params;
         const supabase = createServiceClient();
         const formData = await request.formData();
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
         const ext = file.name.split('.').pop() || 'png';
-        const storagePath = `${clientId}/${type}_${Date.now()}.${ext}`;
+        const storagePath = `${id}/${type}_${Date.now()}.${ext}`;
 
         const { error: uploadError } = await supabase.storage
             .from('brand-assets')
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         const { data, error } = await supabase
             .from('assets')
             .insert({
-                client_id: clientId,
+                client_id: id,
                 type,
                 filename: file.name,
                 storage_path: storagePath,

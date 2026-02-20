@@ -21,8 +21,8 @@ export async function POST(_request: NextRequest, { params }: Params) {
             .single();
 
         if (fetchError || !carousel) return notFound('Carousel');
-        if (carousel.status !== 'draft') {
-            return badRequest(`Cannot approve carousel with status "${carousel.status}". Must be "draft".`);
+        if (!['draft', 'draft_with_copy'].includes(carousel.status)) {
+            return badRequest(`Cannot approve carousel with status "${carousel.status}". Must be "draft" or "draft_with_copy".`);
         }
 
         // Update status to approved
@@ -38,18 +38,29 @@ export async function POST(_request: NextRequest, { params }: Params) {
 
         if (error) return serverError(error.message);
 
-        // Enqueue the orchestrator job
-        const job = await enqueueCarouselJob('orchestrate', { carouselId: id });
+        try {
+            // Enqueue the orchestrator job
+            const job = await enqueueCarouselJob('orchestrate', { carouselId: id });
 
-        // Create job record
-        await supabase.from('jobs').insert({
-            carousel_id: id,
-            type: 'generate_layout',
-            status: 'queued',
-            payload: { bullmq_job_id: job.id },
-        });
+            // Create job record
+            await supabase.from('jobs').insert({
+                carousel_id: id,
+                type: 'generate_layout',
+                status: 'queued',
+                payload: { bullmq_job_id: job.id },
+            });
 
-        return success(data);
+            return success(data);
+        } catch (queueError) {
+            console.error('[Approve] Failed to enqueue job:', queueError);
+            // Revert status to draft_with_copy (or draft)
+            await supabase
+                .from('carousels')
+                .update({ status: 'draft_with_copy' })
+                .eq('id', id);
+
+            return serverError('Carrossel aprovado no banco, mas falha ao iniciar processamento. O Redis está rodando?');
+        }
     } catch (err) {
         return serverError(String(err));
     }

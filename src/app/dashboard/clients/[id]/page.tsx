@@ -22,8 +22,8 @@ interface Carousel {
     slides?: { id: string; position: number; headline: string; preview_url: string | null }[];
 }
 
-export default function ClientPage({ params }: { params: Promise<{ clientId: string }> }) {
-    const { clientId } = use(params);
+export default function ClientPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const [client, setClient] = useState<Client | null>(null);
     const [carousels, setCarousels] = useState<Carousel[]>([]);
     const [activeTab, setActiveTab] = useState<'brand' | 'carousels'>('carousels');
@@ -32,16 +32,16 @@ export default function ClientPage({ params }: { params: Promise<{ clientId: str
 
     useEffect(() => {
         Promise.all([fetchClient(), fetchCarousels()]).finally(() => setLoading(false));
-    }, [clientId]);
+    }, [id]);
 
     async function fetchClient() {
-        const res = await fetch(`/api/v1/clients/${clientId}`);
+        const res = await fetch(`/api/v1/clients/${id}`);
         setClient(await res.json());
     }
 
     async function fetchCarousels() {
         // We need the projects first, then get carousels per project
-        const projRes = await fetch(`/api/v1/clients/${clientId}/projects`);
+        const projRes = await fetch(`/api/v1/clients/${id}/projects`);
         const projects = await projRes.json();
 
         const allCarousels: Carousel[] = [];
@@ -178,7 +178,7 @@ export default function ClientPage({ params }: { params: Promise<{ clientId: str
 
             {showNewCarousel && (
                 <CreateCarouselModal
-                    clientId={clientId}
+                    clientId={id}
                     onClose={() => setShowNewCarousel(false)}
                     onCreated={() => { setShowNewCarousel(false); fetchCarousels(); }}
                 />

@@ -20,7 +20,7 @@ export async function POST(_request: NextRequest, { params }: Params) {
             .single();
 
         if (fetchError || !carousel) return notFound('Carousel');
-        if (!['approved', 'generated', 'draft'].includes(carousel.status)) {
+        if (!['approved', 'generated', 'draft', 'draft_with_copy'].includes(carousel.status)) {
             return badRequest(`Cannot generate for carousel with status "${carousel.status}".`);
         }
 
@@ -30,10 +30,20 @@ export async function POST(_request: NextRequest, { params }: Params) {
             .update({ status: 'generating' })
             .eq('id', id);
 
-        // Enqueue job
-        const job = await enqueueCarouselJob('orchestrate', { carouselId: id });
+        try {
+            // Enqueue job
+            const job = await enqueueCarouselJob('orchestrate', { carouselId: id });
+            return success({ jobId: job.id, carouselId: id });
+        } catch (queueError) {
+            console.error('[Generate] Failed to enqueue job:', queueError);
+            // Revert status to approved so user can try again
+            await supabase
+                .from('carousels')
+                .update({ status: 'approved' })
+                .eq('id', id);
 
-        return success({ jobId: job.id, carouselId: id });
+            return serverError('Falha ao enfileirar processo de geração. O Redis está rodando?');
+        }
     } catch (err) {
         return serverError(String(err));
     }

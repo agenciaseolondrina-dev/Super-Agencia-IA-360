@@ -1,6 +1,6 @@
 // Database Types — mirrors Supabase schema
 
-export type CarouselStatus = 'draft' | 'approved' | 'generating' | 'generated' | 'hires_ready';
+export type CarouselStatus = 'draft' | 'draft_with_copy' | 'approved' | 'generating' | 'generated' | 'hires_ready';
 export type JobType = 'generate_layout' | 'generate_bg' | 'render_preview' | 'validate' | 'render_hires';
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 export type AssetType = 'logo' | 'icon' | 'pattern' | 'photo';
@@ -42,6 +42,12 @@ export interface Carousel {
   title: string;
   status: CarouselStatus;
   style_preset: string;
+  niche: string | null;
+  theme: string | null;
+  objective: string | null;
+  tone: string | null;
+  cta_final: string | null;
+  slides_count: number;
   prompt_template_id: string | null;
   layout_json: LayoutSpec | null;
   approved_by: string | null;

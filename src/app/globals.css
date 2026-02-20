@@ -249,6 +249,11 @@ body {
   color: #8888a0;
 }
 
+.badge-draft_with_copy {
+  background: rgba(167, 139, 250, 0.2);
+  color: #a78bfa;
+}
+
 .badge-approved {
   background: rgba(62, 168, 255, 0.15);
   color: var(--info);

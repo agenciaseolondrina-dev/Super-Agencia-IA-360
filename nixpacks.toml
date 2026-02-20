@@ -1,0 +1,10 @@
+[phases.setup]
+nixPkgs = ["...", "nodejs", "chromium", "vips"]
+
+[phases.build]
+cmds = ["npm install", "npm run build"]
+
+[variables]
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+# Railway defaults this to the port but Playwright might need it
+CHROME_PATH = "/usr/bin/chromium"
